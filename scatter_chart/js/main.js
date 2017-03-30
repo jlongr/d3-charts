@@ -31,8 +31,7 @@ let xAxis = d3.axisBottom(x);
 
 let yAxis = d3.axisLeft(y);
 
-let data = {
-  raw: [
+let data = [
     {category: "setosa",     series:"sepal", measureX: 3.5, measureY: 5.1},
     {category: "setosa",     series:"sepal", measureX: 3.0, measureY: 4.9},
     {category: "setosa",     series:"sepal", measureX: 3.2, measureY: 4.7},
@@ -42,31 +41,10 @@ let data = {
     {category: "virginica",  series:"sepal", measureX: 2.7, measureY: 2.7},
     {category: "virginica",  series:"sepal", measureX: 3.0, measureY: 3.0},
     {category: "virginica",  series:"sepal", measureX: 2.9, measureY: 2.9}
-  ],
-  munged: []
-};
-/*
-let rollup =
-  d3.nest()
-    //.key(function(d) { return d.category; })
-    .key(function(d) { return d.series; })
-    .entries(data.raw);
+  ];
 
-console.log(rollup);
-
-rollup.forEach(function(d) {
-  let obj = {};
-
-  d.values.forEach(function(d){
-    obj["category"] = d.category;
-    obj[d.series]   = d.measure;
-
-    data.munged.push(obj);
-  });
-});*/
-console.log(data.munged);
-x.domain(d3.extent(data.raw, function(d) { return d.measureX; })).nice();
-y.domain(d3.extent(data.raw, function(d) { return d.measureY; })).nice();
+x.domain(d3.extent(data, function(d) { return d.measureX; })).nice();
+y.domain(d3.extent(data, function(d) { return d.measureY; })).nice();
 
 svg.append("g")
     .attr("class", "x axis")
@@ -91,7 +69,7 @@ svg.append("g")
     .text("Sepal Length (cm)")
 
 svg.selectAll(".dot")
-    .data(data.raw)
+    .data(data)
   .enter().append("circle")
     .attr("class", "dot")
     .attr("r", 3.5)
