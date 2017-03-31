@@ -24,46 +24,43 @@ var parseTime = d3.timeParse("%d-%b-%y");
 var x =
   //d3.scaleTime()
   d3.scaleBand()
-    .rangeRound([0, interiorWidth]);
+    .rangeRound([0, interiorWidth])
+    .paddingInner(1);
 
 var y =
   d3.scaleLinear()
     .rangeRound([interiorHeight, 0]);
 
+let z = d3.scaleOrdinal(d3.schemeCategory10);
+
 var area =
   d3.area()
+    .curve(d3.curveBasis)
     .x(function(d) { return x(d.category); })
     .y1(function(d) { return y(d.measure); });
 
 let data = [
-  {category: "A", measure: .08167},
-  {category: "B", measure: .01492},
-  {category: "C", measure: .02782},
-  {category: "D", measure: .04253},
-  {category: "E", measure: .12702},
-  {category: "F", measure: .02288},
-  {category: "G", measure: .02015},
-  {category: "H", measure: .06094},
-  {category: "I", measure: .06966},
-  {category: "J", measure: .00153},
-  {category: "K", measure: .00772},
-  {category: "L", measure: .04025},
-  {category: "M", measure: .02406},
-  {category: "N", measure: .06749},
-  {category: "O", measure: .07507},
-  {category: "P", measure: .01929},
-  {category: "Q", measure: .00095},
-  {category: "R", measure: .05987},
-  {category: "S", measure: .06327},
-  {category: "T", measure: .09056},
-  {category: "U", measure: .02758},
-  {category: "V", measure: .00978},
-  {category: "W", measure: .02360},
-  {category: "X", measure: .00150},
-  {category: "Y", measure: .01974},
-  {category: "Z", measure: .00074}
+  {category: "A", series: "first",   measure: 25},
+  {category: "B", series: "first",   measure: 35},
+  {category: "C", series: "first",   measure: 15},
+  {category: "D", series: "first",   measure: 25},
+
+  {category: "A", series: "second",  measure: 17},
+  {category: "B", series: "second",  measure: 47},
+  {category: "C", series: "second",  measure: 37},
+  {category: "D", series: "second",  measure: 43}
 ];
 
+let keys = data.map(function(d) { return d.series; })
+               .filter(function(d,i,a) { return a.indexOf(d) == i; });
+
+let series = keys.map(function(datum) {
+    return {
+      id: datum,
+      values: data.filter(function(d) { return d.series == datum; })
+        .map(function(d) { return {category: d.category, measure: d.measure}; })
+    };
+});
 
 x.domain(
   //d3.extent(data, function(d) { return d.category; })
@@ -76,13 +73,17 @@ y.domain(
 
 area.y0( y(0) );
 
-svg.append("path")
-   .datum(data)
-     .attr("fill", "steelblue")
-     .attr("d", area)
-   .append("title")
-     .text(function(d) { console.log(d); return d.category +": "+ d.measure; });
-     //tooltip doesn't work.
+let path =
+  svg.selectAll(".areas")
+       .data(series)
+     .enter()
+     .append("g")
+       .attr("class", "areas");
+
+path.append("path")
+     .style("opacity", 0.85)
+     .attr("fill", function(d) { return z(d.id); })
+     .attr("d", function(d) { return area(d.values); });
 
 svg.append("g")
     .attr("transform", translate(0, interiorHeight))
