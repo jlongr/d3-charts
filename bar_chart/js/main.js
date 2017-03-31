@@ -11,6 +11,13 @@ let exteriorWidth  = 550,
 let interiorWidth  = exteriorWidth - margin.left - margin.right,
     interiorHeight = exteriorHeight - margin.top - margin.bottom;
 
+let colorPalette = [
+  "#98abc5", "#8a89a6",
+  "#7b6888", "#6b486b",
+  "#a05d56", "#d0743c",
+  "#ff8c00", "#f9ff5e"
+];
+
 let svg =
   d3.select("#bar")
     .append("svg")
@@ -35,12 +42,7 @@ let y =
 
 var z =
   d3.scaleOrdinal()
-    .range([
-      "#98abc5", "#8a89a6",
-      "#7b6888", "#6b486b",
-      "#a05d56", "#d0743c",
-      "#ff8c00"
-    ]);
+    .range(colorPalette.reverse());
 
 let data = [
   {category: "A", series: "first",  measure: 67},
@@ -56,7 +58,12 @@ let data = [
   {category: "A", series: "third", measure: 99},
   {category: "B", series: "third", measure: 88},
   {category: "C", series: "third", measure: 15},
-  {category: "D", series: "third", measure: 94}
+  {category: "D", series: "third", measure: 94},
+
+  {category: "A", series: "fourth", measure: 79},
+  {category: "B", series: "fourth", measure: 68},
+  {category: "C", series: "fourth", measure: 25},
+  {category: "D", series: "fourth", measure: 44}
 ];
 
 x.domain(
