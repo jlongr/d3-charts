@@ -1,41 +1,3 @@
-let margin = {
-  top:    20,
-  right:  20,
-  bottom: 30,
-  left:   40
-};
-
-let exteriorWidth  = 550,
-    exteriorHeight = 250;
-
-let interiorWidth  = exteriorWidth - margin.left - margin.right,
-    interiorHeight = exteriorHeight - margin.top - margin.bottom;
-
-let svg =
-  d3.select("#line")
-    .append("svg")
-      .attr("width", exteriorWidth)
-      .attr("height", exteriorHeight)
-    .append("g")
-      .attr("transform", translate(margin.left, margin.top));
-
-let parseTime = d3.timeParse("%d-%b-%y");
-
-/*let x = d3.scaleTime()
-    .rangeRound([0, interiorWidth]);*/
-let x = d3.scaleBand()
-          .rangeRound([0, interiorWidth]);
-
-let y = d3.scaleLinear()
-    .rangeRound([interiorHeight, 0]);
-
-let z = d3.scaleOrdinal(d3.schemeCategory10);
-
-let line = d3.line()
-    .curve(d3.curveBasis)
-    .x(function(d) { return x(d.category); })
-    .y(function(d) { return y(d.measure); });
-
 let data = [
   {category: "A", series: "first", measure: .08167},
   {category: "B", series: "first", measure: .01492},
@@ -102,6 +64,50 @@ let series = keys.map(function(datum) {
         .map(function(d) { return {category: d.category, measure: d.measure}; })
     };
 });
+
+let margin = {
+  top:    20,
+  right:  20,
+  bottom: 30,
+  left:   40
+};
+
+let exteriorWidth  = 550,
+    exteriorHeight = 250;
+
+let interiorWidth  = exteriorWidth - margin.left - margin.right,
+    interiorHeight = exteriorHeight - margin.top - margin.bottom;
+
+let colorPalette = [];
+
+for(let i=0, groups=keys.length; i < groups; i++)
+  colorPalette.push( d3.interpolateWarm(i/groups) );
+
+let svg =
+  d3.select("#line")
+    .append("svg")
+      .attr("width", exteriorWidth)
+      .attr("height", exteriorHeight)
+    .append("g")
+      .attr("transform", translate(margin.left, margin.top));
+
+let parseTime = d3.timeParse("%d-%b-%y");
+
+/*let x = d3.scaleTime()
+    .rangeRound([0, interiorWidth]);*/
+let x = d3.scaleBand()
+          .rangeRound([0, interiorWidth]);
+
+let y = d3.scaleLinear()
+    .rangeRound([interiorHeight, 0]);
+
+let z = d3.scaleOrdinal(colorPalette);
+
+let line = d3.line()
+    .curve(d3.curveBasis)
+    .x(function(d) { return x(d.category); })
+    .y(function(d) { return y(d.measure); });
+
 
 x.domain(
   data.map(function(d) { return d.category; })
