@@ -15,7 +15,7 @@ let colorPalette = [
   "#98abc5", "#8a89a6",
   "#7b6888", "#6b486b",
   "#a05d56", "#d0743c",
-  "#ff8c00", "#f9ff5e"
+  "#ff8c00",
 ];
 
 let svg =
