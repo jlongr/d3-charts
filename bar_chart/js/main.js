@@ -22,47 +22,55 @@ let svg =
 let x =
   d3.scaleBand()
     .rangeRound([0, interiorWidth])
-    .padding(0.1);
+    .paddingInner(0.1);
+
+let x1 =
+  d3.scaleBand()
+    .padding(0.05);
 
 let y =
   d3.scaleLinear()
     .rangeRound([interiorHeight, 0]);
 
+
+var z =
+  d3.scaleOrdinal()
+    .range([
+      "#98abc5", "#8a89a6",
+      "#7b6888", "#6b486b",
+      "#a05d56", "#d0743c",
+      "#ff8c00"
+    ]);
+
 let data = [
-  {category: "A", value: .08167},
-  {category: "B", value: .01492},
-  {category: "C", value: .02782},
-  {category: "D", value: .04253},
-  {category: "E", value: .12702},
-  {category: "F", value: .02288},
-  {category: "G", value: .02015},
-  {category: "H", value: .06094},
-  {category: "I", value: .06966},
-  {category: "J", value: .00153},
-  {category: "K", value: .00772},
-  {category: "L", value: .04025},
-  {category: "M", value: .02406},
-  {category: "N", value: .06749},
-  {category: "O", value: .07507},
-  {category: "P", value: .01929},
-  {category: "Q", value: .00095},
-  {category: "R", value: .05987},
-  {category: "S", value: .06327},
-  {category: "T", value: .09056},
-  {category: "U", value: .02758},
-  {category: "V", value: .00978},
-  {category: "W", value: .02360},
-  {category: "X", value: .00150},
-  {category: "Y", value: .01974},
-  {category: "Z", value: .00074}
+  {category: "A", series: "first",  measure: 67},
+  {category: "B", series: "first",  measure: 92},
+  {category: "C", series: "first",  measure: 82},
+  {category: "D", series: "first",  measure: 53},
+
+  {category: "A", series: "second", measure: 99},
+  {category: "B", series: "second", measure: 88},
+  {category: "C", series: "second", measure: 15},
+  {category: "D", series: "second", measure: 94},
+
+  {category: "A", series: "third", measure: 99},
+  {category: "B", series: "third", measure: 88},
+  {category: "C", series: "third", measure: 15},
+  {category: "D", series: "third", measure: 94}
 ];
 
 x.domain(
   data.map(function(d) { return d.category; })
 );
 
+x1.domain(
+    data.map(function(d) { return d.series; }) //unique keys
+        .filter(function(d,i,a) { return a.indexOf(d) == i; })
+  )
+  .rangeRound([0, x.bandwidth()]);
+
 y.domain(
-  [0, d3.max(data, function(d) { return d.value; })]
+  [0, d3.max(data, function(d) { return d.measure; })]
 );
 
 svg.append("g")
@@ -72,7 +80,7 @@ svg.append("g")
 
 svg.append("g")
      .attr("class", "axis axis--y")
-   .call(d3.axisLeft(y).ticks(10, "%"))
+   .call(d3.axisLeft(y).ticks(10))
    .append("text")
      .attr("transform", "rotate(-90)")
      .attr("y", 6)
@@ -85,14 +93,21 @@ svg.append("g")
 
 svg.selectAll(".bar")
      .data(data)
+   .enter().append("g")
+     .attr("transform", function(d) { return translate(x(d.category), 0); })
+   .selectAll("rect")
+     .data(function(d) {
+             return [{key: d.series, value: d.measure }];
+       })
    .enter().append("rect")
      .attr("class", "bar")
-     .attr("x", function(d) { return x(d.category); })
+     .attr("x", function(d) { return x1(d.key); })
      .attr("y", function(d) { return y(d.value); })
-     .attr("width", x.bandwidth())
+     .attr("width", x1.bandwidth())
      .attr("height", function(d) { return interiorHeight - y(d.value); })
+     .attr("fill", function(d) { return z(d.key); })
    .append("title")
-     .text(function(d) { return d.category +":  "+ d.value; });
+     .text(function(d) { return d.key +":  "+ d.value; });
 
 
 function translate(x, y=0) {
