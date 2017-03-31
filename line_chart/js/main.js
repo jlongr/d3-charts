@@ -92,7 +92,10 @@ let data = [
   {category: "Z", series: "second", measure: .0074}
 ];
 
-let series = ["first", "second"].map(function(datum) {
+let keys = data.map(function(d) { return d.series; })
+               .filter(function(d,i,a) { return a.indexOf(d) == i; });
+
+let series = keys.map(function(datum) {
     return {
       id: datum,
       values: data.filter(function(d) { return d.series == datum; })
@@ -135,13 +138,13 @@ let path =
       .attr("class", "lines");
 
 path.append("path")
-        .attr("class", "line")
-        .attr("d", function(d) { return line(d.values); })
-        .attr("fill", "none")
-        .attr("stroke-linejoin", "round")
-        .attr("stroke-linecap", "round")
-        .attr("stroke-width", 1.5)
-        .attr("stroke", function(d) { return z(d.id); });
+      .attr("class", "line")
+      .attr("d", function(d) { return line(d.values); })
+      .attr("fill", "none")
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-linecap", "round")
+      .attr("stroke-width", 1.5)
+      .attr("stroke", function(d) { return z(d.id); });
 
 
 function translate(x, y=0) {
