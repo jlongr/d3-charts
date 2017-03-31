@@ -11,6 +11,13 @@ let exteriorWidth  = 550,
 let interiorWidth  = exteriorWidth - margin.left - margin.right,
     interiorHeight = exteriorHeight - margin.top - margin.bottom;
 
+let colorPalette = [
+  "#98abc5", "#8a89a6",
+  "#7b6888", "#6b486b",
+  "#a05d56", "#d0743c",
+  "#ff8c00",
+];
+
 let svg =
   d3.select("#area")
     .append("svg")
@@ -31,7 +38,9 @@ var y =
   d3.scaleLinear()
     .rangeRound([interiorHeight, 0]);
 
-let z = d3.scaleOrdinal(d3.schemeCategory10);
+//need logic to choose colors based on number of keys
+//difficult to see overlapped areas when colors are similar.
+let z = d3.scaleOrdinal([colorPalette[0], colorPalette[3], colorPalette[6]]);
 
 var area =
   d3.area()
@@ -40,7 +49,7 @@ var area =
     .y1(function(d) { return y(d.measure); });
 
 let data = [
-  {category: "A", series: "first",   measure: 25},
+  {category: "A", series: "first",   measure: 55},
   {category: "B", series: "first",   measure: 35},
   {category: "C", series: "first",   measure: 15},
   {category: "D", series: "first",   measure: 25},
@@ -48,7 +57,12 @@ let data = [
   {category: "A", series: "second",  measure: 17},
   {category: "B", series: "second",  measure: 47},
   {category: "C", series: "second",  measure: 37},
-  {category: "D", series: "second",  measure: 43}
+  {category: "D", series: "second",  measure: 43},
+
+  {category: "A", series: "third",  measure: 37},
+  {category: "B", series: "third",  measure: 47},
+  {category: "C", series: "third",  measure: 39},
+  {category: "D", series: "third",  measure: 33}
 ];
 
 let keys = data.map(function(d) { return d.series; })
@@ -81,7 +95,7 @@ let path =
        .attr("class", "areas");
 
 path.append("path")
-     .style("opacity", 0.85)
+     .style("opacity", function(d,i) { return (1 - i/5); })
      .attr("fill", function(d) { return z(d.id); })
      .attr("d", function(d) { return area(d.values); });
 
