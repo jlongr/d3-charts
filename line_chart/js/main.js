@@ -81,6 +81,31 @@ let data = [
   {category: "Z", series: "third", measure: 202.54}
 ];
 
+/*
+let data = [];
+
+let sourceCategories = [
+  "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+  "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+];
+
+let sourceSeries = [
+  "first", "second", "third", "fourth"
+];
+
+sourceSeries.forEach(function(seriesName, i) {
+  sourceCategories.forEach(function(categoryName) {
+    let random = Math.random() * 2;
+
+    data.push({
+      category: categoryName,
+      series: seriesName,
+      measure: generateData( (100*i)*random, 100*random, 0.2 )
+    });
+  });
+});
+*/
+
 let max   = d3.max(data, function(d) { return d.measure; } );
 let min   = d3.min(data, function(d) { return d.measure; } );
 let sigma = d3.deviation(data, function(d) { return d.measure; } );
@@ -110,7 +135,7 @@ let interiorWidth  = exteriorWidth - margin.left - margin.right,
     interiorHeight = exteriorHeight - margin.top - margin.bottom;
 
 let divergingScale = d3.scaleLinear()
-    .domain([min+sigma, (min+max)/2, max-sigma])
+    .domain([min, (min+max)/2, max])
     .range(["red", "yellow", "green"]);
 
 let colorPalette = [];
@@ -140,7 +165,7 @@ let y = d3.scaleLinear()
 let z = d3.scaleOrdinal(colorPalette);
 
 let line = d3.line()
-    .curve(d3.curveBasis)
+    .curve(d3.curveCardinal)
     .x(function(d) { return x(d.category); })
     .y(function(d) { return y(d.measure); });
 
@@ -150,9 +175,10 @@ x.domain(
   //d3.extent(data, function(d) { return d.category; })
 );
 
-y.domain(
-  d3.extent(data, function(d) { return d.measure; })
-).nice();
+y.domain([
+  d3.min(data, function(d) { return d.measure; }) - sigma/Math.pow(data.length, 0.5),
+  d3.max(data, function(d) { return d.measure; }) + sigma/Math.pow(data.length, 0.5)
+]).nice();
 
 z.domain(series.map(function(c) { return c.id; }));
 
@@ -241,37 +267,6 @@ svg.append("rect")
   .on("mousemove", mousemove);
 
 
-let seriesCoords = series.map(function(d) {
-  let svgPath = line(d.values);
-
-  let startCoord = svgPath.slice(
-    svgPath.indexOf("M")+1,
-    svgPath.indexOf("L")
-  ).split(",")[1];
-
-  let endCoord = svgPath.slice(
-    svgPath.lastIndexOf("L")+1,
-    svgPath.length
-  ).split(",")[1];
-
-  let curveCoords = svgPath.slice(
-    svgPath.indexOf("C")+1,
-    svgPath.lastIndexOf("L")
-  ).split("C")
-   .map(function(d) {
-    return d.split(",");
-  });
-
-  let coordsArr = curveCoords.map(function(c) {
-    return +c[c.length-1];
-  });
-
-  coordsArr.splice(0, 0, +startCoord);
-  coordsArr.splice(coordsArr.length-1, 1, +endCoord);
-
-  return coordsArr;
-});
-
 function mousemove() {
   let category = x.invert(
     d3.mouse(this)[0]
@@ -283,7 +278,7 @@ function mousemove() {
 
   series.forEach(function(d, i, a) {
     let xPos = x(category);
-    let yPos = seriesCoords[i][index];
+    let yPos = y(d.values[index].measure);
 
     let avg = d3.mean(d.values, function(value) { return value.measure; });
 
@@ -317,6 +312,7 @@ x.invert = (function() {
     };
 })();
 
+
 function translate(x, y=0) {
   return "translate({x}, {y})"
           .replace("{x}", x)
@@ -325,4 +321,8 @@ function translate(x, y=0) {
 
 function classy(text) {
     return text.replace(/\s|\./g, "-");
+}
+
+function generateData(seed, rate, skew) {
+  return seed + rate*(Math.random() - skew);
 }
