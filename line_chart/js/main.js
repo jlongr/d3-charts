@@ -135,7 +135,7 @@ let x = d3.scaleBand()
           .rangeRound([0, interiorWidth]);
 
 let y = d3.scaleLinear()
-    .rangeRound([interiorHeight, 0]);
+          .rangeRound([interiorHeight, 0]);
 
 let z = d3.scaleOrdinal(colorPalette);
 
@@ -152,7 +152,7 @@ x.domain(
 
 y.domain(
   d3.extent(data, function(d) { return d.measure; })
-);
+).nice();
 
 z.domain(series.map(function(c) { return c.id; }));
 
@@ -187,40 +187,46 @@ path.append("path")
       .attr("stroke-linecap", "round")
       .attr("stroke-width", 1.5)
       .attr("stroke", function(d) {
-        let avg = 0;
-
-        d.values.forEach(function(value) {
-          avg += value.measure;
+        let avg = d3.mean(d.values, function(value) {
+          return value.measure;
         });
-
-        avg = avg/d.values.length;
 
         return divergingScale(avg);
         /*return z(d.id);*/
-      });
+      })
+      .attr("transform", translate(x.bandwidth()/2, 0));
 
 
 let tooltip =
   svg.append("g")
        .attr("class", "tooltip")
+       .attr("transform", translate(x.bandwidth()/2, 0))
        .style("visibility", "hidden");
 
 series.forEach(function(d) {
+  let seriesName = classy(d.id);
+
   tooltip.append("circle")
-         .attr("class", "circle " + d.id)
+         .attr("class","tooltip series_" + seriesName)
          .attr("cy", 0)
          .attr("cx", 0)
          .attr("r", 4)
          .style("fill", "none")
-         .style("stroke", "blue");
+         .style("stroke-width", 2);
+
+   tooltip.append("text")
+          .attr("class", "tooltip series_text_" + seriesName)
+          .style("font-family", "Helvetica")
+          .style("font-size", "11px")
+          .style("fill", "black");
 });
 
 tooltip.append("line")
-       .attr("class", "x")
+       .attr("class", "tooltip guideline_x")
        .attr("y1", interiorWidth)
        .attr("y2", interiorWidth)
        .style("stroke", "blue")
-       .style("stroke-width", 2)
+       .style("stroke-width", 1)
        .style("stroke-dasharray", "3,3")
        .style("opacity", 0.5);
 
@@ -272,20 +278,29 @@ function mousemove() {
   );
 
   let index = data.findIndex(function(d) {
-    return d.category == category
+    return d.category == category;
   });
 
-  series.forEach(function(d, i) {
+  series.forEach(function(d, i, a) {
     let xPos = x(category);
     let yPos = seriesCoords[i][index];
 
-    d3.select(".circle." + d.id)
+    let avg = d3.mean(d.values, function(value) { return value.measure; });
+
+    let seriesName = classy(d.id);
+
+    d3.select(".tooltip.series_" + seriesName)
+      .attr("stroke", divergingScale(avg))
       .attr("transform", translate(xPos, yPos));
 
-    d3.select(".x")
-      .attr("transform", translate(xPos, yPos))
-      .attr("y1", interiorHeight - yPos)
-      .attr("y2", -yPos);
+    d3.select(".tooltip.guideline_x")
+      .attr("transform", translate(xPos, 0))
+      .attr("y1", interiorHeight)
+      .attr("y2", 0);
+
+    d3.select(".tooltip.series_text_" + seriesName)
+      .attr("transform", translate(xPos, yPos - 5))
+      .text(d.values[index].measure.toFixed(2));
   });
 
 }
@@ -298,14 +313,16 @@ x.invert = (function() {
         .range( x.domain() );
 
     return function(x) {
-        return scale(x)
-    }
+        return scale(x);
+    };
 })();
-
-
 
 function translate(x, y=0) {
   return "translate({x}, {y})"
           .replace("{x}", x)
           .replace("{y}", y);
+}
+
+function classy(text) {
+    return text.replace(/\s|\./g, "-");
 }
