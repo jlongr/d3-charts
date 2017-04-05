@@ -1,44 +1,3 @@
-let data = [];
-
-let sourceCategories = [
-  "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-  "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
-];
-
-let sourceSeries = [
-  "first", "second", "third", "fourth"
-];
-
-sourceSeries.forEach(function(seriesName, i) {
-  sourceCategories.forEach(function(categoryName) {
-    let random = Math.random() * 2;
-
-    let seed = [200, 100, 25];
-    let rate = [100, 175, 70];
-
-    data.push({
-      category: categoryName,
-      series: seriesName,
-      measure: generateData( seed[i%3], rate[i%3], random - 0.25 )
-    });
-  });
-});
-
-let max   = d3.max(data, function(d) { return d.measure; } );
-let min   = d3.min(data, function(d) { return d.measure; } );
-let sigma = d3.deviation(data, function(d) { return d.measure; } );
-
-let keys = data.map(function(d) { return d.series; })
-               .filter(function(d,i,a) { return a.indexOf(d) == i; });
-
-let series = keys.map(function(datum) {
-    return {
-      id: datum,
-      values: data.filter(function(d) { return d.series == datum; })
-        .map(function(d) { return {category: d.category, measure: d.measure}; })
-    };
-});
-
 let margin = {
   top:    20,
   right:  20,
@@ -53,12 +12,12 @@ let interiorWidth  = exteriorWidth - margin.left - margin.right,
     interiorHeight = exteriorHeight - margin.top - margin.bottom;
 
 let divergingScale = d3.scaleLinear()
-    .domain([min, (min+max)/2, max])
+    .domain([data.minValue(), data.median(), data.maxValue()])
     .range(["red", "yellow", "green"]);
 
 let colorPalette = [];
 
-for(let i=0, groups=keys.length; i < groups; i++) {
+for(let i=0, groups=data.seriesNames().length; i < groups; i++) {
   colorPalette.push( d3.interpolateWarm(i/groups) );
 }
 
@@ -83,22 +42,16 @@ let y = d3.scaleLinear()
 let z = d3.scaleOrdinal(colorPalette);
 
 let line = d3.line()
-    .curve(d3.curveCardinal)
+    .curve(d3.curveCatmullRom)
     .x(function(d) { return x(d.category); })
     .y(function(d) { return y(d.measure); });
 
 
-x.domain(
-  data.map(function(d) { return d.category; })
-  //d3.extent(data, function(d) { return d.category; })
-);
+x.domain( data.categoryNames() );
 
-y.domain([
-  d3.min(data, function(d) { return d.measure; }) - sigma/Math.pow(data.length, 0.5),
-  d3.max(data, function(d) { return d.measure; }) + sigma/Math.pow(data.length, 0.5)
-]).nice();
+y.domain( data.extent() ).nice();
 
-z.domain(series.map(function(c) { return c.id; }));
+z.domain( data.seriesNames() );
 
 svg.append("g")
     .attr("transform", translate(0, interiorHeight))
@@ -118,7 +71,7 @@ svg.append("g")
 
 let path =
   svg.selectAll(".lines")
-    .data(series)
+    .data( data.series() )
     .enter()
     .append("g")
       .attr("class", "lines");
@@ -136,7 +89,7 @@ path.append("path")
         });
 
         return divergingScale(avg);
-        /*return z(d.id);*/
+        /*return z(d.name);*/
       })
       .attr("transform", translate(x.bandwidth()/2, 0));
 
@@ -147,8 +100,8 @@ let tooltip =
        .attr("transform", translate(x.bandwidth()/2, 0))
        .style("visibility", "hidden");
 
-series.forEach(function(d) {
-  let seriesName = classy(d.id);
+data.seriesNames().forEach(function(name) {
+  let seriesName = classy(name);
 
   tooltip.append("circle")
          .attr("class","tooltip series_" + seriesName)
@@ -190,17 +143,20 @@ function mousemove() {
     d3.mouse(this)[0]
   );
 
-  let index = data.findIndex(function(d) {
+  let index = data.rows().findIndex(function(d) {
     return d.category == category;
   });
 
-  series.forEach(function(d, i, a) {
+  data.series().forEach(function(d, i, a) {
     let xPos = x(category);
     let yPos = y(d.values[index].measure);
 
-    let avg = d3.mean(d.values, function(value) { return value.measure; });
+    let avg = d3.mean(
+      d.values,
+      function(value) { return value.measure; }
+    );
 
-    let seriesName = classy(d.id);
+    let seriesName = classy(d.name);
 
     d3.select(".tooltip.series_" + seriesName)
       .attr("stroke", divergingScale(avg))
@@ -239,8 +195,4 @@ function translate(x, y=0) {
 
 function classy(text) {
     return text.replace(/\s|\./g, "-");
-}
-
-function generateData(seed, rate, skew) {
-  return seed + rate*(Math.random() - skew);
 }
