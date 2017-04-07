@@ -11,16 +11,6 @@ let exteriorWidth  = 550,
 let interiorWidth  = exteriorWidth - margin.left - margin.right,
     interiorHeight = exteriorHeight - margin.top - margin.bottom;
 
-let divergingScale = d3.scaleLinear()
-    .domain([data.minValue(), data.median(), data.maxValue()])
-    .range(["red", "yellow", "green"]);
-
-let colorPalette = [];
-
-for(let i=0, groups=data.seriesNames().length; i < groups; i++) {
-  colorPalette.push( d3.interpolateWarm(i/groups) );
-}
-
 let svg =
   d3.select("#line")
     .append("svg")
@@ -34,24 +24,23 @@ let parseTime = d3.timeParse("%d-%b-%y");
 /*let x = d3.scaleTime()
     .rangeRound([0, interiorWidth]);*/
 let x = d3.scaleBand()
-          .rangeRound([0, interiorWidth]);
+          .domain( data.categoryNames() )
+          .rangeRound( [0, interiorWidth] );
 
 let y = d3.scaleLinear()
-          .rangeRound([interiorHeight, 0]);
+          .domain( data.extent() ).nice()
+          .rangeRound( [interiorHeight, 0] );
 
-let z = d3.scaleOrdinal(colorPalette);
+let color = colors.generateScale({
+  palette: "interpolateViridis"
+});
+
 
 let line = d3.line()
     .curve(d3.curveCatmullRom)
     .x(function(d) { return x(d.category); })
     .y(function(d) { return y(d.measure); });
 
-
-x.domain( data.categoryNames() );
-
-y.domain( data.extent() ).nice();
-
-z.domain( data.seriesNames() );
 
 svg.append("g")
     .attr("transform", translate(0, interiorHeight))
@@ -83,14 +72,7 @@ path.append("path")
       .attr("stroke-linejoin", "round")
       .attr("stroke-linecap", "round")
       .attr("stroke-width", 1.5)
-      .attr("stroke", function(d) {
-        let avg = d3.mean(d.values, function(value) {
-          return value.measure;
-        });
-
-        return divergingScale(avg);
-        /*return z(d.name);*/
-      })
+      .attr("stroke", function(d) { return color(d.name); })
       .attr("transform", translate(x.bandwidth()/2, 0));
 
 
@@ -100,6 +82,15 @@ let tooltip =
        .attr("transform", translate(x.bandwidth()/2, 0))
        .style("visibility", "hidden");
 
+tooltip.append("line")
+      .attr("class", "tooltip guideline_x")
+      .attr("y1", interiorWidth)
+      .attr("y2", interiorWidth)
+      .style("stroke", "blue")
+      .style("stroke-width", 1)
+      .style("stroke-dasharray", "3,3")
+      .style("opacity", 0.5);
+
 data.seriesNames().forEach(function(name) {
   let seriesName = classy(name);
 
@@ -108,24 +99,20 @@ data.seriesNames().forEach(function(name) {
          .attr("cy", 0)
          .attr("cx", 0)
          .attr("r", 4)
-         .style("fill", "none")
+         .style("fill", "white")
          .style("stroke-width", 2);
 
    tooltip.append("text")
           .attr("class", "tooltip series_text_" + seriesName)
+          .attr("paint-order", "stroke")
           .style("font-family", "Helvetica")
-          .style("font-size", "11px")
-          .style("fill", "black");
+          .style("font-size", "14px")
+          .style("fill", "#555")
+          .style("stroke", "white")
+          .style("stroke-width", 3.5);
 });
 
-tooltip.append("line")
-       .attr("class", "tooltip guideline_x")
-       .attr("y1", interiorWidth)
-       .attr("y2", interiorWidth)
-       .style("stroke", "blue")
-       .style("stroke-width", 1)
-       .style("stroke-dasharray", "3,3")
-       .style("opacity", 0.5);
+
 
 
 svg.append("rect")
@@ -151,15 +138,10 @@ function mousemove() {
     let xPos = x(category);
     let yPos = y(d.values[index].measure);
 
-    let avg = d3.mean(
-      d.values,
-      function(value) { return value.measure; }
-    );
-
     let seriesName = classy(d.name);
 
     d3.select(".tooltip.series_" + seriesName)
-      .attr("stroke", divergingScale(avg))
+      .attr("stroke", color(d.name))
       .attr("transform", translate(xPos, yPos));
 
     d3.select(".tooltip.guideline_x")
@@ -168,7 +150,7 @@ function mousemove() {
       .attr("y2", 0);
 
     d3.select(".tooltip.series_text_" + seriesName)
-      .attr("transform", translate(xPos, yPos - 5))
+      .attr("transform", translate(xPos+6, yPos))
       .text(d.values[index].measure.toFixed(2));
   });
 

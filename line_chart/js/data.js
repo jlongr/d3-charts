@@ -1,4 +1,4 @@
-let data = (function() {
+const data = (function() {
   let _data = (
     typeof(instanceData) === "undefined" ?
     generateDummyData(26,3) : instanceData.series[0]
