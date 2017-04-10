@@ -11,6 +11,13 @@ let exteriorWidth  = 550,
 let interiorWidth  = exteriorWidth - margin.left - margin.right,
     interiorHeight = exteriorHeight - margin.top - margin.bottom;
 
+let colorPalette = [
+  "#98abc5", "#8a89a6",
+  "#7b6888", "#6b486b",
+  "#a05d56", "#d0743c",
+  "#ff8c00",
+];
+
 let svg =
   d3.select("#area")
     .append("svg")
@@ -24,72 +31,54 @@ var parseTime = d3.timeParse("%d-%b-%y");
 var x =
   //d3.scaleTime()
   d3.scaleBand()
+    .domain( data.categoryNames() )
     .rangeRound([0, interiorWidth]);
 
 var y =
   d3.scaleLinear()
+    .domain( data.extent() ).nice()
     .rangeRound([interiorHeight, 0]);
+
+let color = colors.generateScale({
+  scale: "ordinal",
+  palette: "interpolateViridis"
+});
 
 var area =
   d3.area()
+    .curve(d3.curveCatmullRom)
     .x(function(d) { return x(d.category); })
-    .y1(function(d) { return y(d.measure); });
+    .y1(function(d) { return y(d.measure); })
+    .y0( y(0) );
 
-let data = [
-  {category: "A", measure: .08167},
-  {category: "B", measure: .01492},
-  {category: "C", measure: .02782},
-  {category: "D", measure: .04253},
-  {category: "E", measure: .12702},
-  {category: "F", measure: .02288},
-  {category: "G", measure: .02015},
-  {category: "H", measure: .06094},
-  {category: "I", measure: .06966},
-  {category: "J", measure: .00153},
-  {category: "K", measure: .00772},
-  {category: "L", measure: .04025},
-  {category: "M", measure: .02406},
-  {category: "N", measure: .06749},
-  {category: "O", measure: .07507},
-  {category: "P", measure: .01929},
-  {category: "Q", measure: .00095},
-  {category: "R", measure: .05987},
-  {category: "S", measure: .06327},
-  {category: "T", measure: .09056},
-  {category: "U", measure: .02758},
-  {category: "V", measure: .00978},
-  {category: "W", measure: .02360},
-  {category: "X", measure: .00150},
-  {category: "Y", measure: .01974},
-  {category: "Z", measure: .00074}
-];
+let keys = data.seriesNames();
+
+let series = data.series();
 
 
-x.domain(
-  //d3.extent(data, function(d) { return d.category; })
-  data.map(function(d) { return d.category; })
-);
+let path =
+  svg.selectAll(".areas")
+       .data(series)
+     .enter()
+     .append("g")
+       .attr("class", "areas");
 
-y.domain(
-  [0, d3.max(data, function(d) { return d.measure; })]
-);
+path.append("path")
+     .style("opacity", function(d, i) {
+       let len = data.seriesNames().length;
 
-area.y0( y(0) );
-
-svg.append("path")
-   .datum(data)
-     .attr("fill", "steelblue")
-     .attr("d", area)
-   .append("title")
-     .text(function(d) { console.log(d); return d.category +": "+ d.measure; });
-     //tooltip doesn't work.
+       return (len - i)/len;
+     })
+     .attr("fill", function(d) { return color(d.name); })
+     .attr("d", function(d) { return area(d.values); })
+     .attr("transform", translate(x.bandwidth()/2, 0));
 
 svg.append("g")
     .attr("transform", translate(0, interiorHeight))
     .call(d3.axisBottom(x));
 
 svg.append("g")
-    .call(d3.axisLeft(y))
+    .call(d3.axisLeft(y).ticks(data.seriesNames().length + 1))
   .append("text")
     .attr("fill", "#000")
     .attr("transform", "rotate(-90)")
