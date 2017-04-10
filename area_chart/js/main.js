@@ -31,61 +31,30 @@ var parseTime = d3.timeParse("%d-%b-%y");
 var x =
   //d3.scaleTime()
   d3.scaleBand()
-    .rangeRound([0, interiorWidth])
-    .paddingInner(1);
+    .domain( data.categoryNames() )
+    .rangeRound([0, interiorWidth]);
 
 var y =
   d3.scaleLinear()
+    .domain( data.extent() ).nice()
     .rangeRound([interiorHeight, 0]);
 
-//need logic to choose colors based on number of keys
-//difficult to see overlapped areas when colors are similar.
-let z = d3.scaleOrdinal([colorPalette[0], colorPalette[3], colorPalette[6]]);
+let color = colors.generateScale({
+  scale: "ordinal",
+  palette: "interpolateViridis"
+});
 
 var area =
   d3.area()
-    .curve(d3.curveBasis)
+    .curve(d3.curveCatmullRom)
     .x(function(d) { return x(d.category); })
-    .y1(function(d) { return y(d.measure); });
+    .y1(function(d) { return y(d.measure); })
+    .y0( y(0) );
 
-let data = [
-  {category: "A", series: "first",   measure: 55},
-  {category: "B", series: "first",   measure: 35},
-  {category: "C", series: "first",   measure: 15},
-  {category: "D", series: "first",   measure: 25},
+let keys = data.seriesNames();
 
-  {category: "A", series: "second",  measure: 17},
-  {category: "B", series: "second",  measure: 47},
-  {category: "C", series: "second",  measure: 37},
-  {category: "D", series: "second",  measure: 43},
+let series = data.series();
 
-  {category: "A", series: "third",  measure: 37},
-  {category: "B", series: "third",  measure: 47},
-  {category: "C", series: "third",  measure: 39},
-  {category: "D", series: "third",  measure: 33}
-];
-
-let keys = data.map(function(d) { return d.series; })
-               .filter(function(d,i,a) { return a.indexOf(d) == i; });
-
-let series = keys.map(function(datum) {
-    return {
-      id: datum,
-      values: data.filter(function(d) { return d.series == datum; })
-        .map(function(d) { return {category: d.category, measure: d.measure}; })
-    };
-});
-
-x.domain(
-  //d3.extent(data, function(d) { return d.category; })
-  data.map(function(d) { return d.category; })
-);
-
-y.domain(
-  [0, d3.max(data, function(d) { return d.measure; })]
-);
-
-area.y0( y(0) );
 
 let path =
   svg.selectAll(".areas")
@@ -95,16 +64,21 @@ let path =
        .attr("class", "areas");
 
 path.append("path")
-     .style("opacity", function(d,i) { return (1 - i/5); })
-     .attr("fill", function(d) { return z(d.id); })
-     .attr("d", function(d) { return area(d.values); });
+     .style("opacity", function(d, i) {
+       let len = data.seriesNames().length;
+
+       return (len - i)/len;
+     })
+     .attr("fill", function(d) { return color(d.name); })
+     .attr("d", function(d) { return area(d.values); })
+     .attr("transform", translate(x.bandwidth()/2, 0));
 
 svg.append("g")
     .attr("transform", translate(0, interiorHeight))
     .call(d3.axisBottom(x));
 
 svg.append("g")
-    .call(d3.axisLeft(y))
+    .call(d3.axisLeft(y).ticks(data.seriesNames().length + 1))
   .append("text")
     .attr("fill", "#000")
     .attr("transform", "rotate(-90)")
