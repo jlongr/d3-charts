@@ -11,6 +11,13 @@ let exteriorWidth  = 550,
 let interiorWidth  = exteriorWidth - margin.left - margin.right,
     interiorHeight = exteriorHeight - margin.top - margin.bottom;
 
+let colorPalette = [
+  "#98abc5", "#8a89a6",
+  "#7b6888", "#6b486b",
+  "#a05d56", "#d0743c",
+  "#ff8c00",
+];
+
 let svg =
   d3.select("#bar")
     .append("svg")
@@ -21,49 +28,27 @@ let svg =
 
 let x =
   d3.scaleBand()
-    .rangeRound([0, interiorWidth])
-    .padding(0.1);
+    .domain( data.categoryNames() )
+    .rangeRound( [0, interiorWidth] )
+    .paddingInner(0.1);
+
+let x1 =
+  d3.scaleBand()
+    .domain( data.seriesNames() )
+    .rangeRound( [0, x.bandwidth()] )
+    .padding(0.05);
 
 let y =
   d3.scaleLinear()
-    .rangeRound([interiorHeight, 0]);
+    .domain( data.extent() ).nice()
+    .rangeRound( [interiorHeight, 0] );
 
-let data = [
-  {category: "A", value: .08167},
-  {category: "B", value: .01492},
-  {category: "C", value: .02782},
-  {category: "D", value: .04253},
-  {category: "E", value: .12702},
-  {category: "F", value: .02288},
-  {category: "G", value: .02015},
-  {category: "H", value: .06094},
-  {category: "I", value: .06966},
-  {category: "J", value: .00153},
-  {category: "K", value: .00772},
-  {category: "L", value: .04025},
-  {category: "M", value: .02406},
-  {category: "N", value: .06749},
-  {category: "O", value: .07507},
-  {category: "P", value: .01929},
-  {category: "Q", value: .00095},
-  {category: "R", value: .05987},
-  {category: "S", value: .06327},
-  {category: "T", value: .09056},
-  {category: "U", value: .02758},
-  {category: "V", value: .00978},
-  {category: "W", value: .02360},
-  {category: "X", value: .00150},
-  {category: "Y", value: .01974},
-  {category: "Z", value: .00074}
-];
 
-x.domain(
-  data.map(function(d) { return d.category; })
-);
+var color = colors.generateScale({
+  scale: "ordinal",
+  palette: "interpolateViridis"
+});
 
-y.domain(
-  [0, d3.max(data, function(d) { return d.value; })]
-);
 
 svg.append("g")
     .attr("class", "axis axis--x")
@@ -72,7 +57,7 @@ svg.append("g")
 
 svg.append("g")
      .attr("class", "axis axis--y")
-   .call(d3.axisLeft(y).ticks(10, "%"))
+   .call(d3.axisLeft(y).ticks( data.seriesNames().length + 1 ))
    .append("text")
      .attr("transform", "rotate(-90)")
      .attr("y", 6)
@@ -84,15 +69,24 @@ svg.append("g")
      .style("font-family", "sans-serif");
 
 svg.selectAll(".bar")
-     .data(data)
+     .data( data.rows() )
+   .enter().append("g")
+     .attr("transform", function(d) {
+       return translate(x(d.category), 0);
+     })
+   .selectAll("rect")
+     .data(function(d) {
+        return [{key: d.series, value: d.measure }];
+      })
    .enter().append("rect")
      .attr("class", "bar")
-     .attr("x", function(d) { return x(d.category); })
+     .attr("x", function(d) { return x1(d.key); })
      .attr("y", function(d) { return y(d.value); })
-     .attr("width", x.bandwidth())
+     .attr("width", x1.bandwidth())
      .attr("height", function(d) { return interiorHeight - y(d.value); })
+     .attr("fill", function(d) { return color(d.key); })
    .append("title")
-     .text(function(d) { return d.category +":  "+ d.value; });
+     .text(function(d) { return d.key +":  "+ d.value; });
 
 
 function translate(x, y=0) {

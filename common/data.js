@@ -1,7 +1,7 @@
 const data = (function() {
   let _data = (
     typeof(instanceData) === "undefined" ?
-    generateDummyData(26,3) : instanceData.series[0]
+    generateDummyData(13,3) : instanceData.series[0]
   );
 
   //getters/setters
