@@ -2,14 +2,8 @@ let width  = 500,
     height = 300,
     radius = Math.min(width, height) / 2;
 
-let color = d3.scaleOrdinal([
-  "#98abc5", "#8a89a6",
-  "#7b6888", "#6b486b",
-  "#a05d56", "#d0743c",
-  "#ff8c00"
-]);
-
-let data = [
+/*
+let _data = [
   {age: "<5",    population: 2704659},
   {age: "5-13",  population: 4499890},
   {age: "14-17", population: 2159981},
@@ -18,6 +12,16 @@ let data = [
   {age: "45-64", population: 8819342},
   {age: "≥65",   population: 612463}
 ];
+*/
+
+let color = colors.generateScale({
+    scale: "ordinal",
+    palette: "interpolateViridis",
+    domain: data.categoryNames(),
+    range: data.categoryNames().map(function(d,i,a) {
+      return d3.interpolateViridis(i/a.length);
+    })
+});
 
 let svg =
   d3.select("#pie")
@@ -30,7 +34,7 @@ let svg =
 let pie =
   d3.pie()
     .sort(null)
-    .value(function(d) { return d.population; });
+    .value(function(d) { return d.measure; });
 
 let path =
   d3.arc()
@@ -44,14 +48,14 @@ let label =
 
 let arc =
   svg.selectAll(".arc")
-     .data( pie(data) )
+     .data( pie(data.rows()) )
      .enter()
     .append("g")
      .attr("class", "arc");
 
 arc.append("path")
     .attr("d", path)
-    .attr("fill", function(d) { return color(d.data.age); });
+    .attr("fill", function(d) { console.log(d); return color(d.data.category); });
 
 arc.append("text")
     .attr("transform", function(d) {
@@ -61,7 +65,7 @@ arc.append("text")
         return translate( x, y );
       })
     .attr("dy", "0.35em")
-    .text(function(d) { return d.data.age; });
+    .text(function(d) { return d.data.category; });
 
 function translate(x, y=0) {
   return "translate({x}, {y})"
