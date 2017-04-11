@@ -19,82 +19,70 @@ let svg =
     .append("g")
       .attr("transform", translate(margin.left, margin.top));
 
-var parseDate = d3.timeParse("%Y %b %d");
+let parseDate = d3.timeParse("%Y %b %d");
 
-//var x = d3.scaleTime().range([0, interiorWidth]),
-var x = d3.scaleBand().range([0, interiorWidth]).paddingInner(1);
-    y = d3.scaleLinear().range([interiorHeight, 0]),
-    z = d3.scaleOrdinal(d3.schemeCategory10);
 
-var stack = d3.stack();
+let stack = d3.stack()
+      .keys( data.seriesNames() );
 
-var area = d3.area()
+let rollup = d3.nest()
+      .key(function(d) { return d.category; })
+      .entries( data.rows() );
+
+let stackData = stack(
+  rollup.map(function(d) {
+      let obj = {"category": d.key};
+
+      d.values.forEach(function(d){
+        obj[d.series] = d.measure;
+      });
+
+      return obj;
+    })
+);
+
+let stackMaxValue = d3.max(
+  rollup.map(function(d) {
+      let value = 0;
+      d.values.forEach(function(d){
+        value += d.measure;
+      });
+      return value;
+    })
+);
+
+
+//let x = d3.scaleTime().range([0, interiorWidth]),
+let x = d3.scaleBand()
+          .domain( data.categoryNames() )
+          .range([0, interiorWidth])
+          .paddingInner(1);
+
+let y = d3.scaleLinear()
+          .domain([0, stackMaxValue]).nice()
+          .range([interiorHeight, 0]);
+
+let color = colors.generateScale({
+      scale: "ordinal",
+      palette: "interpolateViridis"
+    });
+
+let area = d3.area()
     .x( function(d) { return x(d.data.category); })
     .y0(function(d) { return y( d[0] ); })
     .y1(function(d) { return y( d[1] ); });
 
-let data = {
-  raw: [
-    {category: "A", series: "first",   measure: 25},
-    {category: "B", series: "first",   measure: 35},
-    {category: "C", series: "first",   measure: 15},
-    {category: "D", series: "first",   measure: 25},
-    {category: "A", series: "second",  measure: 17},
-    {category: "B", series: "second",  measure: 47},
-    {category: "C", series: "second",  measure: 37},
-    {category: "D", series: "second",  measure: 43}
-  ],
-  munged: []
-};
 
-let rollup =
-  d3.nest()
-    .key(function(d) { return d.category; })
-    .entries(data.raw);
-
-data.munged = rollup.map(function(d) {
-  let obj = {"category": d.key};
-
-  d.values.forEach(function(d){
-    obj[d.series] = d.measure;
-  });
-
-  return obj;
-});
-
-
-var keys = data.raw.map(function(d) { return d.series; })
-                   .filter(function(d,i,a) { return a.indexOf(d) == i; });
-
-stack.keys(keys);
-
-//x.domain(d3.extent(data, function(d) { return d.date; }));
-x.domain(
-  data.munged.map(function(d) { return d.category; })
-);
-
-let arr = [];
-stack(data.munged).forEach(function(series) {
-  series.forEach(function(category) {
-    arr = arr.concat(category);
-  });
-});
-
-y.domain([0, d3.max(arr)]).nice();
-
-z.domain(keys);
-
-
-var layer =
+let layer =
   svg.selectAll(".layer")
-     .data( stack(data.munged) )
+     .data( stackData )
      .enter()
      .append("g")
        .attr("class", "layer");
 
 layer.append("path")
     .attr("class", "area")
-    .style("fill", function(d) { return z(d.key); })
+    .style("fill", function(d) { return color(d.key); })
     .attr("d", area);
     //.append("title").text(function(d) { return d; });
     //tooltip doesn't work
